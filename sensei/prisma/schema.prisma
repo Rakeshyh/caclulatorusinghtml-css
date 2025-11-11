@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String        @id @default(cuid())
+  clerkId         String        @unique
+  email           String        @unique
+  name            String?
+  imageUrl        String?
+  industry        String?
+  subIndustry     String?
+  yearsExperience Int?
+  skills          String[]
+  bio             String?
+  onboarded       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  resumes         Resume[]
+  assessments     Assessment[]
+  coverLetters    CoverLetter[]
+  
+  @@index([clerkId])
+  @@index([email])
+}
+
+model Industry {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  subcategories String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  insights      IndustryInsight[]
+}
+
+model IndustryInsight {
+  id                String   @id @default(cuid())
+  industryId        String
+  industry          Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  subIndustry       String?
+  
+  marketOutlook     String   // positive, neutral, negative
+  growthRate        Float    // percentage
+  demandLevel       String   // High, Medium, Low
+  
+  topSkills         String[]
+  recommendedSkills String[]
+  keyTrends         String[]
+  
+  salaryRanges      Json     // { "Junior Developer": { min: 50000, median: 70000, max: 90000 }, ... }
+  
+  updatedAt         DateTime @updatedAt
+  nextUpdate        DateTime
+  
+  @@unique([industryId, subIndustry])
+  @@index([industryId])
+}
+
+model Resume {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  content   String   @db.Text // Markdown content
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+model Assessment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  quizData  Json     // { questions: [...], userAnswers: [...], correctAnswers: [...] }
+  score     Float
+  tips      String   @db.Text // AI-generated improvement tips
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model CoverLetter {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  jobTitle    String
+  company     String
+  description String   @db.Text
+  content     String   @db.Text // Markdown content
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+}
